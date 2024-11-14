@@ -13,6 +13,9 @@ import { useDeleteGuild } from "../../../../hooks/requests/useDeleteGuild";
 import { useGuildsStore } from "../../../../stores/useGuildsStore";
 import { useRoutesStore } from "../../../../stores/useRoutesStore";
 import { SettingsLayout } from "../../layouts/SettingsLayout";
+import { checkPermissions } from "../../../compute-permissions";
+import { Permissions } from "../../../permissions";
+import { usePermssions } from "../../../../hooks/usePermissions";
 
 const RouteItem: React.FC<{ title: string; route: string }> = ({
     title,
@@ -40,6 +43,10 @@ export const GuildSettingsLayout: React.FC = ({ children }) => {
         state => state.guildPreview[router.query.guild as string]
     );
     const { mutateAsync } = useDeleteGuild();
+    const { permissions, guildMember } = usePermssions(
+        router.query.guild as string,
+        router.query.channel as string
+    );
     return (
         <SettingsLayout
             nav={
@@ -61,18 +68,27 @@ export const GuildSettingsLayout: React.FC = ({ children }) => {
                     >
                         <Typography variant="button">{name}</Typography>
                     </ListSubheader>
-                    <RouteItem title="Overview" route="" />
-                    <RouteItem title="Roles" route="/roles" />
-                    <RouteItem title="Emoji" route="/emoji" />
-                    <RouteItem title="Audit Log" route="/audit-logs" />
-                    <RouteItem
+                    {checkPermissions(
+                        permissions,
+                        Permissions.MANAGE_GUILD
+                    ) && <RouteItem title="Overview" route="" />}
+                    {checkPermissions(
+                        permissions,
+                        Permissions.MANAGE_ROLES
+                    ) && <RouteItem title="Roles" route="/roles" />}
+                    {checkPermissions(
+                        permissions,
+                        Permissions.MANAGE_CHANNELS
+                    ) && <RouteItem title="Emoji" route="/emoji" />}
+                    {/* <RouteItem title="Audit Log" route="/audit-logs" /> */}
+                    {/* <RouteItem
                         title="Server Template"
                         route="/server-template"
                     />
                     <RouteItem
                         title="Custom Invite Link"
                         route="/custom-link"
-                    />
+                    /> */}
                     <Divider />
                     <ListSubheader
                         disableSticky
@@ -83,20 +99,24 @@ export const GuildSettingsLayout: React.FC = ({ children }) => {
                             User management
                         </Typography>
                     </ListSubheader>
-                    <RouteItem title="Members" route="/members" />
-                    <RouteItem title="Invites" route="/invites" />
-                    <RouteItem title="Bans" route="/bans" />
+                    {/* <RouteItem title="Members" route="/members" /> */}
+                    {/* <RouteItem title="Invites" route="/invites" /> */}
+                    {checkPermissions(permissions, Permissions.BAN_MEMBERS) && (
+                        <RouteItem title="Bans" route="/bans" />
+                    )}
                     <Divider />
-                    <ListItemButton
-                        onClick={async () => {
-                            setRoute("/");
-                            router.replace("/channels/@me");
-                            await mutateAsync(router.query.guild as string);
-                        }}
-                        sx={{ borderRadius: "5px" }}
-                    >
-                        <ListItemText primary="Delete Server" />
-                    </ListItemButton>
+                    {guildMember.is_owner && (
+                        <ListItemButton
+                            onClick={async () => {
+                                setRoute("/");
+                                router.replace("/channels/@me");
+                                await mutateAsync(router.query.guild as string);
+                            }}
+                            sx={{ borderRadius: "5px" }}
+                        >
+                            <ListItemText primary="Delete Server" />
+                        </ListItemButton>
+                    )}
                 </List>
             }
         >
